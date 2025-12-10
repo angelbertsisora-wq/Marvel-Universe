@@ -1,8 +1,8 @@
 {
-  "name": "reactt",
+  "name": "marvel-universe",
   "private": true,
   "version": "0.0.0",
-  "homepage": "https://architaagr25.github.io/Marvel_Universe",
+  "homepage": "https://angelbertsisora-wq.github.io/Marvel-Universe",
   "type": "module",
   "scripts": {
     "dev": "vite",
