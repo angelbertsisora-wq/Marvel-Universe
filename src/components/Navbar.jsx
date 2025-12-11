@@ -89,12 +89,20 @@ const Navbar = () => {
             <div className='hidden md:block'>
                 {navitems.map((item) => {
                     if (item === 'Log-in' || item === 'Sign-up') {
+                        // Hide Sign-up button when authenticated
+                        if (isAuthenticated && item === 'Sign-up') {
+                            return null;
+                        }
                         return (
                             <button
                                 key={item}
                                 className="nav-hover-btn"
                                 onClick={(e) => {
                                     e.preventDefault();
+                                    // Don't open auth modal if user is already authenticated
+                                    if (isAuthenticated && item === 'Log-in') {
+                                        return;
+                                    }
                                     setAuthModalTab(item === 'Log-in' ? 'login' : 'signup');
                                     setIsAuthModalOpen(true);
                                 }}
