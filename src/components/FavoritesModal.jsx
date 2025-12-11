@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { useFavorites } from '../context/FavoritesContext';
 import { useAuth } from '../context/AuthContext';
-import { IoClose } from 'react-icons/io5';
+import { IoClose, IoArrowBack } from 'react-icons/io5';
 import { AiFillHeart, AiOutlineHeart } from 'react-icons/ai';
 import { useGSAP } from '@gsap/react';
 import gsap from 'gsap';
@@ -100,17 +100,27 @@ const FavoritesModal = ({ isOpen, onClose }) => {
       >
         {/* Header */}
         <div className="flex items-center justify-between border-b border-white/20 p-6">
-          <div>
-            <h2 className="special-font font-zentry text-3xl font-black uppercase text-blue-50 md:text-4xl">
-              <b>My Favorites</b>
-            </h2>
-            <p className="mt-1 font-circular-web text-sm text-blue-50/70">
-              {favorites.length} {favorites.length === 1 ? 'film' : 'films'} saved
-            </p>
+          <div className="flex items-center gap-4">
+            <button
+              onClick={onClose}
+              className="rounded-full p-2 text-blue-50 transition-colors hover:bg-white/10"
+              title="Go back"
+            >
+              <IoArrowBack className="text-2xl" />
+            </button>
+            <div>
+              <h2 className="special-font font-zentry text-3xl font-black uppercase text-blue-50 md:text-4xl">
+                <b>My Favorites</b>
+              </h2>
+              <p className="mt-1 font-circular-web text-sm text-blue-50/70">
+                {favorites.length} {favorites.length === 1 ? 'film' : 'films'} saved
+              </p>
+            </div>
           </div>
           <button
             onClick={onClose}
             className="rounded-full p-2 text-blue-50 transition-colors hover:bg-white/10"
+            title="Close"
           >
             <IoClose className="text-2xl" />
           </button>
@@ -157,8 +167,9 @@ const FavoritesModal = ({ isOpen, onClose }) => {
               </p>
             </div>
           ) : activeTab === 'favorites' ? (
-            <div className="grid grid-cols-1 gap-6 md:grid-cols-2 lg:grid-cols-3">
-              {favorites.map((film) => (
+            <div className="flex justify-center">
+              <div className="grid w-full max-w-7xl grid-cols-1 gap-6 md:grid-cols-2 lg:grid-cols-3">
+                {favorites.map((film) => (
                 <div
                   key={film.id}
                   className="group relative overflow-hidden rounded-lg border border-white/20 bg-gradient-to-br from-black/90 to-violet-300/10 transition-all duration-300 hover:border-white/40 hover:shadow-[0_0_30px_rgba(87,36,255,0.3)]"
@@ -198,11 +209,13 @@ const FavoritesModal = ({ isOpen, onClose }) => {
                     </p>
                   </div>
                 </div>
-              ))}
+                ))}
+              </div>
             </div>
           ) : (
-            <div className="space-y-6">
-              {favorites.map((film) => (
+            <div className="flex justify-center">
+              <div className="w-full max-w-4xl space-y-6">
+                {favorites.map((film) => (
                 <div
                   key={film.id}
                   className="rounded-lg border border-white/20 bg-black/50 p-6"
@@ -332,7 +345,8 @@ const FavoritesModal = ({ isOpen, onClose }) => {
                     )}
                   </div>
                 </div>
-              ))}
+                ))}
+              </div>
             </div>
           )}
         </div>

@@ -1,5 +1,59 @@
-import React, { useRef, useState } from 'react';
+import React, { useRef, useState, useEffect } from 'react';
 import { TiLocationArrow } from "react-icons/ti"; 
+
+// Lazy loading video card component
+const LazyVideoCard = ({ src }) => {
+    const videoRef = useRef(null);
+    const cardRef = useRef(null);
+    const [shouldLoad, setShouldLoad] = useState(false);
+
+    useEffect(() => {
+        const observer = new IntersectionObserver(
+            (entries) => {
+                entries.forEach((entry) => {
+                    if (entry.isIntersecting) {
+                        setShouldLoad(true);
+                        observer.disconnect();
+                    }
+                });
+            },
+            { rootMargin: '150px' }
+        );
+
+        if (cardRef.current) {
+            observer.observe(cardRef.current);
+        }
+
+        return () => observer.disconnect();
+    }, []);
+
+    useEffect(() => {
+        if (shouldLoad && videoRef.current && src) {
+            videoRef.current.src = src;
+            videoRef.current.load();
+            videoRef.current.play().catch(() => {
+                // Ignore autoplay errors
+            });
+        }
+    }, [shouldLoad, src]);
+
+    return (
+        <div ref={cardRef} className='size-full'>
+            {shouldLoad ? (
+                <video
+                    ref={videoRef}
+                    loop
+                    muted
+                    autoPlay
+                    preload="none"
+                    className='size-full object-cover object-center'
+                />
+            ) : (
+                <div className='size-full bg-black/50' />
+            )}
+        </div>
+    );
+};
 
 // for creating the tilt effect in features cards
 const BentoTilt =({children, className =''}) => {
@@ -39,17 +93,56 @@ const BentoTilt =({children, className =''}) => {
 
 
 const BentoCard = ({src, title, description}) => {
+    const videoRef = useRef(null);
+    const cardRef = useRef(null);
+    const [shouldLoad, setShouldLoad] = useState(false);
+
+    useEffect(() => {
+        const observer = new IntersectionObserver(
+            (entries) => {
+                entries.forEach((entry) => {
+                    if (entry.isIntersecting) {
+                        setShouldLoad(true);
+                        observer.disconnect();
+                    }
+                });
+            },
+            { rootMargin: '150px' } // Start loading before entering viewport
+        );
+
+        if (cardRef.current) {
+            observer.observe(cardRef.current);
+        }
+
+        return () => observer.disconnect();
+    }, []);
+
+    useEffect(() => {
+        if (shouldLoad && videoRef.current && src) {
+            videoRef.current.src = src;
+            videoRef.current.load();
+            videoRef.current.play().catch(() => {
+                // Ignore autoplay errors
+            });
+        }
+    }, [shouldLoad, src]);
+
     return (
-        <div className='relative size-full'>
-            <video
-            src={src}
-            loop
-            muted
-            type="video/mp4"
-            playsInline
-            autoPlay
-            className='absolute left-0 top-0 size-full object-cover object-center'
-            />
+        <div ref={cardRef} className='relative size-full'>
+            {shouldLoad ? (
+                <video
+                    ref={videoRef}
+                    loop
+                    muted
+                    type="video/mp4"
+                    playsInline
+                    autoPlay
+                    preload="none"
+                    className='absolute left-0 top-0 size-full object-cover object-center'
+                />
+            ) : (
+                <div className='absolute left-0 top-0 size-full bg-black/50' />
+            )}
 
             <div className='relative z-10 flex size-full flex-col justify-between p-5 text-blue-50'>
                 <div>
@@ -127,12 +220,9 @@ const Features = () => {
                     </BentoTilt>
 
                     <BentoTilt className='bento-tilt_2'>
-                            <video
+                            <LazyVideoCard
                             src='https://res.cloudinary.com/dqbhvzioe/video/upload/v1744102683/feature-5_lfdc9j.mp4'
-                            loop
-                            muted
-                            autoPlay
-                            className='size-full object-cover object-center'/>
+                            />
                     </BentoTilt>
 
             </div>

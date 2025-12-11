@@ -9,6 +9,70 @@ import AnimatedTitle from './AnimatedTitle';
 
 gsap.registerPlugin(ScrollTrigger);
 
+// Lazy loading video component
+const LazyVideo = ({ src, poster, className, ...props }) => {
+  const videoRef = useRef(null);
+  const [shouldLoad, setShouldLoad] = useState(false);
+  const containerRef = useRef(null);
+
+  useEffect(() => {
+    const observer = new IntersectionObserver(
+      (entries) => {
+        entries.forEach((entry) => {
+          if (entry.isIntersecting) {
+            setShouldLoad(true);
+            observer.disconnect();
+          }
+        });
+      },
+      { rootMargin: '200px' } // Start loading earlier for hero videos
+    );
+
+    if (containerRef.current) {
+      observer.observe(containerRef.current);
+    }
+
+    return () => observer.disconnect();
+  }, []);
+
+  useEffect(() => {
+    if (shouldLoad && videoRef.current && src) {
+      videoRef.current.src = src;
+      videoRef.current.load();
+      videoRef.current.play().catch(() => {
+        // Ignore autoplay errors
+      });
+    }
+  }, [shouldLoad, src]);
+
+  return (
+    <div ref={containerRef} className={className}>
+      {shouldLoad ? (
+        <video
+          ref={videoRef}
+          poster={poster}
+          muted
+          loop
+          autoPlay
+          playsInline
+          preload="none"
+          className="pointer-events-none h-full w-full object-cover"
+          {...props}
+        />
+      ) : (
+        poster && (
+          <img
+            src={poster}
+            alt=""
+            className="pointer-events-none h-full w-full object-cover"
+            loading="lazy"
+          />
+        )
+      )}
+    </div>
+  );
+};
+
 // Live countdown that updates every second
 const LiveCountdown = ({ releaseDate, isCompact = false }) => {
   const [timeRemaining, setTimeRemaining] = useState({
@@ -160,6 +224,7 @@ const FilmCard = ({ film, isNext }) => {
   const cardRef = useRef();
   const videoRef = useRef(null);
   const [isHovered, setIsHovered] = useState(false);
+  const [shouldLoadVideo, setShouldLoadVideo] = useState(false);
   const { isFavorite, toggleFavorite } = useFavorites();
   const { isAuthenticated } = useAuth();
   const [showAuthPrompt, setShowAuthPrompt] = useState(false);
@@ -189,12 +254,38 @@ const FilmCard = ({ film, isNext }) => {
     }
   }, { scope: cardRef });
 
+  // Lazy load video when card enters viewport
+  useEffect(() => {
+    const observer = new IntersectionObserver(
+      (entries) => {
+        entries.forEach((entry) => {
+          if (entry.isIntersecting) {
+            setShouldLoadVideo(true);
+            observer.disconnect();
+          }
+        });
+      },
+      { rootMargin: '100px' } // Start loading 100px before entering viewport
+    );
+
+    if (cardRef.current) {
+      observer.observe(cardRef.current);
+    }
+
+    return () => observer.disconnect();
+  }, []);
+
   // Play/pause trailer when hovering the card
   useEffect(() => {
     const videoEl = videoRef.current;
-    if (!videoEl) return;
+    if (!videoEl || !shouldLoadVideo) return;
 
     if (isHovered) {
+      // Load video source if not already loaded
+      if (!videoEl.src && film.video_url) {
+        videoEl.src = film.video_url;
+        videoEl.load();
+      }
       videoEl
         .play()
         .catch(() => {
@@ -204,7 +295,7 @@ const FilmCard = ({ film, isNext }) => {
       videoEl.pause();
       videoEl.currentTime = 0;
     }
-  }, [isHovered]);
+  }, [isHovered, shouldLoadVideo, film.video_url]);
 
   return (
     <FilmCardTilt
@@ -214,14 +305,13 @@ const FilmCard = ({ film, isNext }) => {
       <div ref={cardRef} className="relative h-full w-full">
         {/* Poster Image */}
         <div className="relative h-[60%] w-full overflow-hidden">
-          {film.video_url && (
+          {film.video_url && shouldLoadVideo && (
             <video
               ref={videoRef}
-              src={film.video_url}
               muted
               loop
               playsInline
-              preload="metadata"
+              preload="none"
               poster={film.poster_url}
               className={`pointer-events-none absolute inset-0 z-10 h-full w-full object-cover transition-opacity duration-500 ${
                 isHovered ? 'opacity-100' : 'opacity-0'
@@ -243,7 +333,7 @@ const FilmCard = ({ film, isNext }) => {
           <div className="absolute inset-0 bg-gradient-to-t from-black via-transparent to-transparent opacity-60" />
           
           {/* Days Until Badge - live */}
-          <div className="absolute top-4 right-4 rounded-full bg-violet-300/90 px-4 py-2 backdrop-blur-sm">
+          <div className="absolute top-4 right-4 z-30 rounded-full bg-violet-300/90 px-4 py-2 backdrop-blur-sm">
             <LiveCountdown releaseDate={film.release_date} isCompact />
           </div>
 
@@ -262,7 +352,7 @@ const FilmCard = ({ film, isNext }) => {
                 console.error('Error toggling favorite:', error);
               }
             }}
-            className={`absolute bottom-4 right-4 flex items-center justify-center rounded-full p-3 backdrop-blur-sm transition-all duration-300 ${
+            className={`absolute bottom-4 right-4 z-30 flex items-center justify-center rounded-full p-3 backdrop-blur-sm transition-all duration-300 ${
               isFavorite(film.id)
                 ? 'bg-red-500/90 text-white shadow-lg shadow-red-500/50'
                 : 'bg-black/60 text-blue-50 hover:bg-black/80'
@@ -278,7 +368,7 @@ const FilmCard = ({ film, isNext }) => {
 
           {/* Auth Prompt */}
           {showAuthPrompt && (
-            <div className="absolute bottom-20 right-4 animate-fadeIn rounded-lg bg-violet-300/95 px-4 py-2 backdrop-blur-sm">
+            <div className="absolute bottom-20 right-4 z-30 animate-fadeIn rounded-lg bg-violet-300/95 px-4 py-2 backdrop-blur-sm">
               <p className="font-robert-medium text-xs text-black">
                 Please login to add favorites
               </p>
@@ -287,7 +377,7 @@ const FilmCard = ({ film, isNext }) => {
 
           {/* Next Badge */}
           {isNext && (
-            <div className="absolute top-4 left-4 rounded-full bg-yellow-300/90 px-4 py-2 backdrop-blur-sm">
+            <div className="absolute top-4 left-4 z-30 rounded-full bg-yellow-300/90 px-4 py-2 backdrop-blur-sm">
               <span className="font-robert-medium text-xs uppercase text-black">
                 Next
               </span>
@@ -415,7 +505,7 @@ const UpcomingFilms = () => {
         <div className="mb-16 flex flex-col items-center gap-10 md:flex-row md:gap-14">
           <div className="flex-1">
             <AnimatedTitle
-              title="<b>Upcoming</b><br />Films"
+              title="<b>Next in the</b><br />Multiverse"
               containerClass="pointer-events-none mix-blend-difference md:items-start"
             />
             <p className="mt-6 max-w-xl text-center font-circular-web text-base text-blue-50/70 md:text-left md:text-lg">
@@ -431,13 +521,9 @@ const UpcomingFilms = () => {
               onMouseLeave={resetTilt}
               className="group relative overflow-hidden rounded-2xl border border-white/25 bg-gradient-to-br from-violet-300/15 via-black/60 to-blue-300/15 shadow-[0_0_40px_rgba(87,36,255,0.25)] transition-transform duration-150"
             >
-              <video
+              <LazyVideo
                 src={mockFilmsData.video_url}
                 poster={mockFilmsData.poster_url}
-                muted
-                loop
-                autoPlay
-                playsInline
                 className="pointer-events-none h-full w-full object-cover opacity-80 transition duration-500 group-hover:opacity-100"
               />
               <div className="pointer-events-none absolute inset-0 bg-gradient-to-t from-black via-black/20 to-transparent" />
@@ -464,7 +550,7 @@ const UpcomingFilms = () => {
             Marvel Cinematic Universe
           </p>
           <h2 className="special-font mb-6 font-zentry text-5xl font-black uppercase text-blue-50 md:text-7xl lg:text-8xl">
-            <b>Upcoming</b> Films
+            <b>UPCOMING FILMS</b> 
           </h2>
           <p className="mx-auto max-w-2xl font-circular-web text-base text-blue-50/70 md:text-lg">
             Get ready for the next epic adventures in the Marvel Cinematic Universe.
