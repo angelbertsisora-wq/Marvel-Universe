@@ -73,6 +73,15 @@ const LazyVideo = ({ src, poster, className, ...props }) => {
   );
 };
 
+const formatFullDate = (dateString) => {
+  const date = new Date(dateString);
+  return date.toLocaleDateString('en-US', {
+    year: 'numeric',
+    month: 'long',
+    day: 'numeric',
+  });
+};
+
 // Live countdown that updates every second
 const LiveCountdown = ({ releaseDate, isCompact = false }) => {
   const [timeRemaining, setTimeRemaining] = useState({
@@ -220,7 +229,7 @@ const FilmCardTilt = ({ children, className = '', onHoverChange }) => {
 };
 
 // Film Card Component
-const FilmCard = ({ film, isNext }) => {
+const FilmCard = ({ film, isNext, onSelect }) => {
   const cardRef = useRef();
   const videoRef = useRef(null);
   const [isHovered, setIsHovered] = useState(false);
@@ -228,15 +237,6 @@ const FilmCard = ({ film, isNext }) => {
   const { isFavorite, toggleFavorite } = useFavorites();
   const { isAuthenticated } = useAuth();
   const [showAuthPrompt, setShowAuthPrompt] = useState(false);
-
-  const formatDate = (dateString) => {
-    const date = new Date(dateString);
-    return date.toLocaleDateString('en-US', { 
-      year: 'numeric', 
-      month: 'long', 
-      day: 'numeric' 
-    });
-  };
 
   useGSAP(() => {
     if (cardRef.current) {
@@ -302,7 +302,19 @@ const FilmCard = ({ film, isNext }) => {
       className="relative h-full w-full overflow-hidden rounded-lg border border-white/20 bg-gradient-to-br from-black/90 to-violet-300/10 backdrop-blur-sm transition-all duration-300 hover:border-white/40 hover:shadow-[0_0_30px_rgba(87,36,255,0.3)]"
       onHoverChange={setIsHovered}
     >
-      <div ref={cardRef} className="relative h-full w-full">
+      <div
+        ref={cardRef}
+        className="relative h-full w-full cursor-pointer"
+        onClick={() => onSelect?.(film)}
+        role="button"
+        tabIndex={0}
+        onKeyDown={(e) => {
+          if (e.key === 'Enter' || e.key === ' ') {
+            e.preventDefault();
+            onSelect?.(film);
+          }
+        }}
+      >
         {/* Poster Image */}
         <div className="relative h-[60%] w-full overflow-hidden">
           {film.video_url && shouldLoadVideo && (
@@ -392,7 +404,7 @@ const FilmCard = ({ film, isNext }) => {
               <b>{film.title}</b>
             </h3>
             <p className="mb-3 font-circular-web text-xs text-blue-50/80 md:text-sm">
-              {formatDate(film.release_date)}
+              {formatFullDate(film.release_date)}
             </p>
             <p className="line-clamp-3 font-circular-web text-xs text-blue-50/70 md:text-sm">
               {film.overview}
@@ -426,10 +438,236 @@ const FilmCard = ({ film, isNext }) => {
   );
 };
 
+const FilmDetailsModal = ({ film, isOpen, onClose }) => {
+  const { isAuthenticated, user } = useAuth();
+  const [comments, setComments] = useState([]);
+  const [commentInput, setCommentInput] = useState('');
+  const [editingId, setEditingId] = useState(null);
+  const [feedback, setFeedback] = useState('');
+
+  useEffect(() => {
+    if (!film) return;
+    try {
+      const stored = JSON.parse(localStorage.getItem(`film_comments_${film.id}`) || '[]');
+      setComments(Array.isArray(stored) ? stored : []);
+    } catch {
+      setComments([]);
+    }
+    setCommentInput('');
+    setEditingId(null);
+    setFeedback('');
+  }, [film]);
+
+  const persistComments = (next) => {
+    setComments(next);
+    if (film) {
+      localStorage.setItem(`film_comments_${film.id}`, JSON.stringify(next));
+    }
+  };
+
+  const handleSubmit = () => {
+    if (!isAuthenticated) {
+      setFeedback('Please log in to share your theory.');
+      return;
+    }
+
+    const text = commentInput.trim();
+    if (!text) return;
+
+    if (editingId) {
+      const updated = comments.map((c) =>
+        c.id === editingId ? { ...c, text, updatedAt: new Date().toISOString() } : c
+      );
+      persistComments(updated);
+    } else {
+      const newComment = {
+        id: crypto.randomUUID ? crypto.randomUUID() : Date.now().toString(),
+        userId: user?.id,
+        userName: user?.name || user?.email || 'Fan',
+        text,
+        createdAt: new Date().toISOString(),
+      };
+      persistComments([...comments, newComment]);
+    }
+
+    setCommentInput('');
+    setEditingId(null);
+    setFeedback('');
+  };
+
+  const handleEdit = (id) => {
+    const target = comments.find((c) => c.id === id);
+    if (!target) return;
+    setCommentInput(target.text);
+    setEditingId(id);
+    setFeedback('');
+  };
+
+  const handleDelete = (id) => {
+    const target = comments.find((c) => c.id === id);
+    if (!target) return;
+    if (!isAuthenticated || target.userId !== user?.id) {
+      setFeedback('You can only delete your own theory.');
+      return;
+    }
+    const filtered = comments.filter((c) => c.id !== id);
+    persistComments(filtered);
+    if (editingId === id) {
+      setEditingId(null);
+      setCommentInput('');
+    }
+  };
+
+  if (!isOpen || !film) return null;
+
+  return (
+    <div className="fixed inset-0 z-[60] flex items-center justify-center bg-black/70 px-4 py-8 backdrop-blur">
+      <div className="relative max-h-[90vh] w-full max-w-4xl overflow-y-auto rounded-2xl border border-white/20 bg-[#0a0a0f] shadow-2xl">
+        <button
+          onClick={onClose}
+          className="absolute right-4 top-4 rounded-full bg-white/10 px-3 py-1 text-sm text-blue-50 transition hover:bg-white/20"
+        >
+          Close
+        </button>
+
+        <div className="grid gap-6 p-6 md:grid-cols-2">
+          <div className="space-y-4">
+            <div className="overflow-hidden rounded-xl border border-white/15">
+              <img
+                src={film.poster_url}
+                alt={film.title}
+                className="h-full w-full object-cover"
+                onError={(e) => {
+                  e.target.src =
+                    'https://via.placeholder.com/500x750/1a1a1a/ffffff?text=Marvel';
+                }}
+              />
+            </div>
+            <div className="rounded-xl border border-white/15 bg-white/5 p-4">
+              <p className="font-general text-xs uppercase text-blue-50/70">Countdown</p>
+              <div className="mt-2">
+                <LiveCountdown releaseDate={film.release_date} />
+              </div>
+            </div>
+          </div>
+
+          <div className="space-y-4">
+            <div>
+              <p className="font-general text-xs uppercase text-blue-50/70">Marvel Studios</p>
+              <h3 className="special-font text-3xl font-black uppercase text-blue-50 md:text-4xl">
+                <b>{film.title}</b>
+              </h3>
+              <p className="mt-2 font-circular-web text-sm text-blue-50/70">
+                {formatFullDate(film.release_date)}
+              </p>
+            </div>
+            <p className="font-circular-web text-sm leading-relaxed text-blue-50/80">
+              {film.overview}
+            </p>
+
+            <div className="rounded-xl border border-white/15 bg-white/5 p-4">
+              <div className="flex items-center justify-between">
+                <p className="font-general text-sm uppercase text-blue-50/80">Fan Theories</p>
+                {editingId && (
+                  <span className="text-xs text-violet-200">
+                    Editing your theory...
+                  </span>
+                )}
+              </div>
+
+              <div className="mt-3 flex flex-col gap-3">
+                <textarea
+                  value={commentInput}
+                  onChange={(e) => setCommentInput(e.target.value)}
+                  placeholder={
+                    isAuthenticated
+                      ? 'Share your theory...'
+                      : 'Log in to share your theory'
+                  }
+                  className="min-h-[96px] w-full rounded-lg border border-white/15 bg-black/40 p-3 text-sm text-blue-50 placeholder:text-blue-50/40 focus:border-violet-300 focus:outline-none"
+                  disabled={!isAuthenticated}
+                />
+                <div className="flex items-center justify-between">
+                  {feedback && (
+                    <p className="text-xs text-yellow-200">{feedback}</p>
+                  )}
+                  <div className="flex gap-2">
+                    {editingId && (
+                      <button
+                        onClick={() => {
+                          setEditingId(null);
+                          setCommentInput('');
+                        }}
+                        className="rounded-lg px-3 py-2 text-xs text-blue-50 transition hover:bg-white/10"
+                      >
+                        Cancel
+                      </button>
+                    )}
+                    <button
+                      onClick={handleSubmit}
+                      disabled={!isAuthenticated}
+                      className="rounded-lg bg-violet-400 px-4 py-2 text-sm font-semibold text-black transition hover:bg-violet-300 disabled:cursor-not-allowed disabled:bg-violet-400/50"
+                    >
+                      {editingId ? 'Save changes' : 'Add theory'}
+                    </button>
+                  </div>
+                </div>
+              </div>
+
+              <div className="mt-4 space-y-3">
+                {comments.length === 0 && (
+                  <p className="text-sm text-blue-50/60">
+                    No theories yet. Be the first to share!
+                  </p>
+                )}
+                {comments.map((comment) => (
+                  <div
+                    key={comment.id}
+                    className="rounded-lg border border-white/10 bg-black/30 p-3"
+                  >
+                    <div className="flex items-center justify-between">
+                      <div>
+                        <p className="text-sm font-semibold text-blue-50">
+                          {comment.userName}
+                        </p>
+                        <p className="text-[11px] text-blue-50/60">
+                          {formatFullDate(comment.createdAt || new Date())}
+                        </p>
+                      </div>
+                      {isAuthenticated && comment.userId === user?.id && (
+                        <div className="flex items-center gap-2 text-xs">
+                          <button
+                            onClick={() => handleEdit(comment.id)}
+                            className="rounded bg-white/10 px-2 py-1 text-blue-50 transition hover:bg-white/20"
+                          >
+                            Edit
+                          </button>
+                          <button
+                            onClick={() => handleDelete(comment.id)}
+                            className="rounded bg-red-500/70 px-2 py-1 text-white transition hover:bg-red-500"
+                          >
+                            Delete
+                          </button>
+                        </div>
+                      )}
+                    </div>
+                    <p className="mt-2 text-sm text-blue-50/80">{comment.text}</p>
+                  </div>
+                ))}
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+};
+
 const UpcomingFilms = () => {
   const sectionRef = useRef();
   const titleRef = useRef();
   const featureFrameRef = useRef(null);
+  const [selectedFilm, setSelectedFilm] = useState(null);
 
   useGSAP(() => {
     if (titleRef.current) {
@@ -562,7 +800,11 @@ const UpcomingFilms = () => {
         <div className="grid grid-cols-1 gap-8 md:grid-cols-2 lg:gap-12">
           {films.map((film, index) => (
             <div key={film.id || index} className="h-[600px] md:h-[700px]">
-              <FilmCard film={film} isNext={film.isNext} />
+              <FilmCard
+                film={film}
+                isNext={film.isNext}
+                onSelect={(selected) => setSelectedFilm(selected)}
+              />
             </div>
           ))}
         </div>
@@ -577,6 +819,12 @@ const UpcomingFilms = () => {
           </div>
         </div>
       </div>
+
+      <FilmDetailsModal
+        film={selectedFilm}
+        isOpen={Boolean(selectedFilm)}
+        onClose={() => setSelectedFilm(null)}
+      />
     </section>
   );
 };

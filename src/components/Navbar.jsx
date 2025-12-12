@@ -88,6 +88,7 @@ const Navbar = () => {
         <div className='flex h-full items-center'>
             <div className='hidden md:block'>
                 {navitems.map((item) => {
+                    if (isAuthenticated && item === 'Sign-up') return null;
                     if (item === 'Log-in' || item === 'Sign-up') {
                         return (
                             <button
