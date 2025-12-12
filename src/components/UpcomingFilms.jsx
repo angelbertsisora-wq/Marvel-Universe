@@ -444,6 +444,7 @@ const FilmDetailsModal = ({ film, isOpen, onClose }) => {
   const [commentInput, setCommentInput] = useState('');
   const [editingId, setEditingId] = useState(null);
   const [feedback, setFeedback] = useState('');
+  const [confirmingDeleteId, setConfirmingDeleteId] = useState(null);
 
   useEffect(() => {
     if (!film) return;
@@ -510,27 +511,44 @@ const FilmDetailsModal = ({ film, isOpen, onClose }) => {
       setFeedback('You can only delete your own theory.');
       return;
     }
+    if (confirmingDeleteId !== id) {
+      setConfirmingDeleteId(id);
+      setFeedback('Click delete again to confirm.');
+      return;
+    }
     const filtered = comments.filter((c) => c.id !== id);
     persistComments(filtered);
     if (editingId === id) {
       setEditingId(null);
       setCommentInput('');
     }
+    setConfirmingDeleteId(null);
+    setFeedback('');
   };
 
   if (!isOpen || !film) return null;
 
   return (
     <div className="fixed inset-0 z-[60] flex items-center justify-center bg-black/70 px-4 py-8 backdrop-blur">
-      <div className="relative max-h-[90vh] w-full max-w-4xl overflow-y-auto rounded-2xl border border-white/20 bg-[#0a0a0f] shadow-2xl">
+      <div className="relative max-h-[90vh] w-full max-w-4xl overflow-hidden rounded-2xl border border-white/20 bg-[#0a0a0f] shadow-2xl">
+        {/* Sticky header with close */}
+        <div className="sticky top-0 z-10 flex items-center justify-between border-b border-white/10 bg-black/80 px-6 py-4 backdrop-blur">
+          <div>
+            <p className="font-general text-[11px] uppercase text-blue-50/60">Film details</p>
+            <h3 className="special-font text-2xl font-black uppercase text-blue-50 md:text-3xl">
+              <b>{film.title}</b>
+            </h3>
+          </div>
         <button
           onClick={onClose}
-          className="absolute right-4 top-4 rounded-full bg-white/10 px-3 py-1 text-sm text-blue-50 transition hover:bg-white/20"
+          className="rounded-full bg-white/10 px-4 py-2 text-sm font-semibold text-blue-50 transition hover:bg-white/20"
         >
           Close
         </button>
+        </div>
 
-        <div className="grid gap-6 p-6 md:grid-cols-2">
+        {/* Scrollable content */}
+        <div className="grid max-h-[calc(90vh-72px)] gap-6 overflow-y-auto p-6 md:grid-cols-2">
           <div className="space-y-4">
             <div className="overflow-hidden rounded-xl border border-white/15">
               <img
@@ -567,7 +585,9 @@ const FilmDetailsModal = ({ film, isOpen, onClose }) => {
 
             <div className="rounded-xl border border-white/15 bg-white/5 p-4">
               <div className="flex items-center justify-between">
-                <p className="font-general text-sm uppercase text-blue-50/80">Fan Theories</p>
+                <p className="font-general text-sm uppercase text-blue-50/80">
+                  Fan Theories ({comments.length})
+                </p>
                 {editingId && (
                   <span className="text-xs text-violet-200">
                     Editing your theory...
@@ -576,6 +596,11 @@ const FilmDetailsModal = ({ film, isOpen, onClose }) => {
               </div>
 
               <div className="mt-3 flex flex-col gap-3">
+                {!isAuthenticated && (
+                  <p className="rounded-lg border border-white/10 bg-red-500/10 px-3 py-2 text-xs text-red-200">
+                    Login required to add or manage theories.
+                  </p>
+                )}
                 <textarea
                   value={commentInput}
                   onChange={(e) => setCommentInput(e.target.value)}
@@ -588,7 +613,7 @@ const FilmDetailsModal = ({ film, isOpen, onClose }) => {
                   disabled={!isAuthenticated}
                 />
                 <div className="flex items-center justify-between">
-                  {feedback && (
+                    {feedback && (
                     <p className="text-xs text-yellow-200">{feedback}</p>
                   )}
                   <div className="flex gap-2">
@@ -597,6 +622,7 @@ const FilmDetailsModal = ({ film, isOpen, onClose }) => {
                         onClick={() => {
                           setEditingId(null);
                           setCommentInput('');
+                          setFeedback('');
                         }}
                         className="rounded-lg px-3 py-2 text-xs text-blue-50 transition hover:bg-white/10"
                       >
@@ -644,9 +670,13 @@ const FilmDetailsModal = ({ film, isOpen, onClose }) => {
                           </button>
                           <button
                             onClick={() => handleDelete(comment.id)}
-                            className="rounded bg-red-500/70 px-2 py-1 text-white transition hover:bg-red-500"
+                            className={`rounded px-2 py-1 text-white transition ${
+                              confirmingDeleteId === comment.id
+                                ? 'bg-red-700 hover:bg-red-700'
+                                : 'bg-red-500/70 hover:bg-red-500'
+                            }`}
                           >
-                            Delete
+                            {confirmingDeleteId === comment.id ? 'Confirm' : 'Delete'}
                           </button>
                         </div>
                       )}

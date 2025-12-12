@@ -90,16 +90,17 @@ const FavoritesModal = ({ isOpen, onClose }) => {
 
   return (
     <div
-      className="fixed inset-0 z-[100] flex items-center justify-center bg-black/80 backdrop-blur-sm"
+      className="fixed inset-0 z-[100] flex items-center justify-center bg-black/80 px-4 py-10 backdrop-blur-sm md:py-14"
       onClick={onClose}
     >
       <div
         ref={modalRef}
-        className="relative mx-4 h-[90vh] w-full max-w-6xl overflow-hidden rounded-lg border border-white/20 bg-gradient-to-br from-black/95 to-violet-300/10 backdrop-blur-md"
+        className="relative w-full max-w-6xl overflow-hidden rounded-lg border border-white/20 bg-gradient-to-br from-black/95 to-violet-300/10 shadow-2xl backdrop-blur-md"
+        style={{ maxHeight: '82vh' }}
         onClick={(e) => e.stopPropagation()}
       >
         {/* Header */}
-        <div className="flex items-center justify-between border-b border-white/20 p-6">
+        <div className="sticky top-0 z-10 flex items-center justify-between border-b border-white/20 bg-black/70 p-6 backdrop-blur">
           <div className="flex items-center gap-4">
             <button
               onClick={onClose}
@@ -119,7 +120,7 @@ const FavoritesModal = ({ isOpen, onClose }) => {
           </div>
           <button
             onClick={onClose}
-            className="rounded-full p-2 text-blue-50 transition-colors hover:bg-white/10"
+            className="rounded-full bg-white/10 p-2 text-blue-50 transition-colors hover:bg-white/20"
             title="Close"
           >
             <IoClose className="text-2xl" />
@@ -127,7 +128,7 @@ const FavoritesModal = ({ isOpen, onClose }) => {
         </div>
 
         {/* Tabs */}
-        <div className="flex border-b border-white/10">
+        <div className="sticky top-[76px] z-10 flex border-b border-white/10 bg-black/60 backdrop-blur">
           <button
             onClick={() => setActiveTab('favorites')}
             className={`flex-1 px-6 py-4 font-general text-sm uppercase transition-colors ${
@@ -151,7 +152,7 @@ const FavoritesModal = ({ isOpen, onClose }) => {
         </div>
 
         {/* Content */}
-        <div ref={contentRef} className="h-[calc(90vh-180px)] overflow-y-auto p-6">
+        <div ref={contentRef} className="max-h-[calc(82vh-160px)] overflow-y-auto p-6">
           {!isAuthenticated ? (
             <div className="flex h-full flex-col items-center justify-center text-center">
               <AiOutlineHeart className="mb-4 text-6xl text-blue-50/30" />
@@ -164,6 +165,9 @@ const FavoritesModal = ({ isOpen, onClose }) => {
               <AiOutlineHeart className="mb-4 text-6xl text-blue-50/30" />
               <p className="font-circular-web text-lg text-blue-50/70">
                 No favorites yet. Start adding films to your favorites!
+              </p>
+              <p className="mt-2 text-sm text-blue-50/60">
+                Tip: click the heart on any upcoming film to save it here.
               </p>
             </div>
           ) : activeTab === 'favorites' ? (
@@ -351,6 +355,15 @@ const FavoritesModal = ({ isOpen, onClose }) => {
           )}
         </div>
       </div>
+
+      {/* Floating close button for easy access */}
+      <button
+        onClick={onClose}
+        className="absolute right-6 top-6 rounded-full bg-white/15 p-3 text-blue-50 shadow-lg backdrop-blur hover:bg-white/25"
+        title="Close favorites"
+      >
+        <IoClose className="text-2xl" />
+      </button>
     </div>
   );
 };
