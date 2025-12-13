@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
+import { createPortal } from 'react-dom';
 import { useFavorites } from '../context/FavoritesContext';
 import { useAuth } from '../context/AuthContext';
 import { IoClose, IoArrowBack } from 'react-icons/io5';
@@ -88,7 +89,7 @@ const FavoritesModal = ({ isOpen, onClose }) => {
 
   if (!isOpen) return null;
 
-  return (
+  return createPortal(
     <div
       className="fixed inset-0 z-[100] flex items-center justify-center bg-black/80 px-4 py-10 backdrop-blur-sm md:py-14"
       onClick={onClose}
@@ -364,7 +365,8 @@ const FavoritesModal = ({ isOpen, onClose }) => {
       >
         <IoClose className="text-2xl" />
       </button>
-    </div>
+    </div>,
+    document.body
   );
 };
 

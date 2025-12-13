@@ -176,7 +176,7 @@ const Features = () => {
 
         <BentoTilt className='border-hsla relative mb-7 h-95 w-full overflow-hidden rounded-md md:h-[65vh]'>
             <BentoCard
-            src="/heroes.mp4"
+            src="https://res.cloudinary.com/djef7fggp/video/upload/v1765628848/heroes_mrjkon.3gp"
             title = {<><b>Heroes</b></>}
             description="Meet the iconic protectors of the universe,
              from Iron Man and Spider-Man to Doctor Strange 

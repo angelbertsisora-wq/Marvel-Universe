@@ -46,7 +46,7 @@ const LazyVideo = ({ src, poster, className, ...props }) => {
   }, [shouldLoad, src]);
 
   return (
-    <div ref={containerRef} className={className}>
+    <div ref={containerRef} className={`absolute inset-0 ${className || ''}`}>
       {shouldLoad ? (
         <video
           ref={videoRef}
@@ -185,8 +185,8 @@ const mockFilmsData = {
   "release_date": "2026-07-29",
   "title": "Spider-Man: Brand New Day",
   "type": "Movie",
-  // Local trailer stored in public directory for hover autoplay
-  "video_url": "/SPIDER-MAN__BRAND_NEW_DAY(1080p).mp4"
+  // Video stored on Cloudinary
+  "video_url": "https://res.cloudinary.com/djef7fggp/video/upload/v1765630197/SPIDER-MAN__BRAND_NEW_DAY_1080p_eiys40.mp4"
 };
 
 // Tilt effect component similar to BentoTilt
@@ -787,7 +787,7 @@ const UpcomingFilms = () => {
               ref={featureFrameRef}
               onMouseMove={handleFeatureMove}
               onMouseLeave={resetTilt}
-              className="group relative overflow-hidden rounded-2xl border border-white/25 bg-gradient-to-br from-violet-300/15 via-black/60 to-blue-300/15 shadow-[0_0_40px_rgba(87,36,255,0.25)] transition-transform duration-150"
+              className="group relative min-h-[400px] overflow-hidden rounded-2xl border border-white/25 bg-gradient-to-br from-violet-300/15 via-black/60 to-blue-300/15 shadow-[0_0_40px_rgba(87,36,255,0.25)] transition-transform duration-150 md:min-h-[500px]"
             >
               <LazyVideo
                 src={mockFilmsData.video_url}
