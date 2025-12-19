@@ -210,9 +210,9 @@ Return to frontend
 
 ### 📋 Quick Checklist for New Users
 
-marvel-laravel/
+IMPORTANT EXECUTION NOTE
 
-This folder contains the final, complete, and functional version of the project.
+All setup and run commands in this section must be executed inside the marvel-laravel/ folder. The frontend/ folder is for reference only and should NOT be run.
 
 **First time setting up? Follow these steps in order:**
 
