@@ -5,6 +5,7 @@ import { ScrollTrigger } from 'gsap/all';
 import { usePage, router } from '@inertiajs/react';
 import { useFavorites } from '../../context/FavoritesContext';
 import { useAuth } from '../../context/AuthContext';
+import { useToast } from '../../context/ToastContext';
 import { AiFillHeart, AiOutlineHeart } from 'react-icons/ai';
 import AnimatedTitle from './AnimatedTitle';
 
@@ -357,8 +358,10 @@ const FilmCard = ({ film, isNext, onSelect }) => {
 
               try {
                 await toggleFavorite(film);
+                // Error handling is done in FavoritesContext with toast notifications
               } catch (error) {
                 console.error('Error toggling favorite:', error);
+                // Error already shown via toast in FavoritesContext
                 setFavoriteError(error.message || 'Failed to update favorite');
                 setTimeout(() => setFavoriteError(null), 3000);
               } finally {
@@ -715,6 +718,7 @@ const FilmDetailsModal = ({ film, isOpen, onClose }) => {
 
 const UpcomingFilms = () => {
   const { props } = usePage();
+  const { showError, showWarning } = useToast();
   const sectionRef = useRef();
   const titleRef = useRef();
   const featureFrameRef = useRef(null);
@@ -764,7 +768,9 @@ const UpcomingFilms = () => {
             
             // Check if response has error
             if (data.error) {
-              setError(data.message || 'Failed to load films data from server');
+              const errorMessage = data.message || 'Failed to load films data from server';
+              setError(errorMessage);
+              showError(errorMessage);
               setIsLoading(false);
               return;
             }
@@ -781,14 +787,35 @@ const UpcomingFilms = () => {
             setIsLoading(false);
             setError(null);
           } else {
-            const errorData = await response.json().catch(() => ({}));
-            console.error('❌ Backend API error:', errorData);
-            setError(errorData.message || `Server error: ${response.status}`);
+            let errorMessage = 'Failed to load films data';
+            try {
+              const errorData = await response.json();
+              errorMessage = errorData.message || errorData.error || `Server error: ${response.status}`;
+              
+              // Handle specific HTTP status codes
+              if (response.status === 503) {
+                errorMessage = 'Service temporarily unavailable. Please try again later.';
+              } else if (response.status === 500) {
+                errorMessage = 'Internal server error. Please try again later.';
+              } else if (response.status === 404) {
+                errorMessage = 'Films data not found.';
+              }
+            } catch (e) {
+              errorMessage = `Server error (${response.status}). Please try again.`;
+            }
+            
+            console.error('❌ Backend API error:', errorMessage);
+            setError(errorMessage);
+            showError(errorMessage);
             setIsLoading(false);
           }
         } catch (err) {
           console.error('❌ Error fetching from backend:', err);
-          setError('Network error. Please check your connection and try again.');
+          const errorMessage = err.message?.includes('Failed to fetch') || err.message?.includes('NetworkError')
+            ? 'Network error. Please check your internet connection and try again.'
+            : 'An unexpected error occurred while loading films data. Please try again.';
+          setError(errorMessage);
+          showError(errorMessage);
           setIsLoading(false);
         }
       };

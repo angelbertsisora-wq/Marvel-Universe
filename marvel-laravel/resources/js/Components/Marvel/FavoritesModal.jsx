@@ -2,6 +2,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import { createPortal } from 'react-dom';
 import { useFavorites } from '../../context/FavoritesContext';
 import { useAuth } from '../../context/AuthContext';
+import { useToast } from '../../context/ToastContext';
 import { IoClose, IoArrowBack } from 'react-icons/io5';
 import { AiFillHeart, AiOutlineHeart } from 'react-icons/ai';
 import { useGSAP } from '@gsap/react';
@@ -10,6 +11,7 @@ import gsap from 'gsap';
 const FavoritesModal = ({ isOpen, onClose }) => {
   const { favorites, removeFavorite, updateTheories, updateNotes } = useFavorites();
   const { isAuthenticated } = useAuth();
+  const { showError, showSuccess, showWarning } = useToast();
   const [activeTab, setActiveTab] = useState('favorites'); // 'favorites' or 'notes'
   const [editingFilmId, setEditingFilmId] = useState(null);
   const [editingType, setEditingType] = useState(null); // 'theories' or 'notes'
@@ -118,8 +120,7 @@ const FavoritesModal = ({ isOpen, onClose }) => {
     const validation = validateInput(editText, editingType === 'theories' ? 'Theory' : 'Note');
     
     if (!validation.valid) {
-      // Show error message to user (you could add a toast/alert here)
-      alert(validation.error);
+      showError(validation.error);
       return;
     }
     
@@ -134,9 +135,14 @@ const FavoritesModal = ({ isOpen, onClose }) => {
       setEditingFilmId(null);
       setEditingType(null);
       setEditText('');
+      // Success message is shown in FavoritesContext
     } catch (error) {
       console.error('Error saving:', error);
-      alert(`Failed to save ${editingType === 'theories' ? 'theory' : 'note'}. Please try again.`);
+      // Error message is already shown in FavoritesContext via toast
+      // Only show additional error if it's a validation error
+      if (!error.message.includes('Failed to') && !error.message.includes('Session expired')) {
+        showError(`Failed to save ${editingType === 'theories' ? 'theory' : 'note'}. Please try again.`);
+      }
     } finally {
       setIsSaving(false);
     }
@@ -162,12 +168,18 @@ const FavoritesModal = ({ isOpen, onClose }) => {
     try {
       if (type === 'theories') {
         await updateTheories(filmId, '');
+        showSuccess('Theory deleted successfully');
       } else if (type === 'notes') {
         await updateNotes(filmId, '');
+        showSuccess('Note deleted successfully');
       }
     } catch (error) {
       console.error('Error deleting:', error);
-      alert(`Failed to delete ${type === 'theories' ? 'theory' : 'note'}. Please try again.`);
+      // Error message is already shown in FavoritesContext via toast
+      // Only show additional error if it's not already handled
+      if (!error.message.includes('Failed to') && !error.message.includes('Session expired')) {
+        showError(`Failed to delete ${type === 'theories' ? 'theory' : 'note'}. Please try again.`);
+      }
     } finally {
       setIsSaving(false);
     }
@@ -336,7 +348,15 @@ const FavoritesModal = ({ isOpen, onClose }) => {
                     
                     {/* Remove Favorite Button */}
                     <button
-                      onClick={() => removeFavorite(film.id)}
+                      onClick={async () => {
+                        try {
+                          await removeFavorite(film.id);
+                          // Success message is shown in FavoritesContext
+                        } catch (error) {
+                          // Error message is already shown in FavoritesContext via toast
+                          console.error('Error removing favorite:', error);
+                        }
+                      }}
                       className="absolute top-2 right-2 rounded-full bg-red-500/90 p-2 backdrop-blur-sm transition-all hover:bg-red-500"
                       title="Remove from favorites"
                     >
