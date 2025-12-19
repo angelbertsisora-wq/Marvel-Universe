@@ -210,6 +210,10 @@ Return to frontend
 
 ### 📋 Quick Checklist for New Users
 
+marvel-laravel/
+
+This folder contains the final, complete, and functional version of the project.
+
 **First time setting up? Follow these steps in order:**
 
 1. ✅ **Download & Install Prerequisites** (see below)
