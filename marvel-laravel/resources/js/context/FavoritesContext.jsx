@@ -235,6 +235,7 @@ export const FavoritesProvider = ({ children }) => {
           
           if (csrfToken) {
             headers['X-XSRF-TOKEN'] = csrfToken;
+            headers['X-CSRF-TOKEN'] = csrfToken; // Also send as X-CSRF-TOKEN for compatibility
           }
 
           const deleteResponse = await fetch(`/api/favorites/${favoriteToDelete.id}`, {
@@ -252,7 +253,10 @@ export const FavoritesProvider = ({ children }) => {
               const errorData = await deleteResponse.json();
               errorMessage = errorData.message || errorMessage;
               
-              if (deleteResponse.status === 403) {
+              // Handle specific error cases
+              if (deleteResponse.status === 419 || errorData.message?.includes('CSRF')) {
+                errorMessage = 'Session expired. Please refresh the page and try again.';
+              } else if (deleteResponse.status === 403) {
                 errorMessage = 'You do not have permission to remove this favorite.';
               } else if (deleteResponse.status === 404) {
                 errorMessage = 'Favorite not found. It may have already been removed.';
@@ -263,6 +267,10 @@ export const FavoritesProvider = ({ children }) => {
             showError(errorMessage);
             throw new Error(errorMessage);
           }
+        } else {
+          // Favorite not found in the list, but try to remove it from state anyway
+          setFavorites((prev) => prev.filter((f) => f.id !== filmId));
+          showSuccess('Favorite removed successfully');
         }
       } else {
         const errorData = await allFavoritesResponse.json().catch(() => ({}));
@@ -273,7 +281,7 @@ export const FavoritesProvider = ({ children }) => {
     } catch (error) {
       console.error('Error removing favorite:', error);
       // Only show error if it wasn't already shown above
-      if (!error.message.includes('Failed to remove favorite') && !error.message.includes('Failed to fetch')) {
+      if (!error.message.includes('Failed to remove favorite') && !error.message.includes('Failed to fetch') && !error.message.includes('Session expired')) {
         showError(error.message || 'Failed to remove favorite. Please try again.');
       }
       throw error;
