@@ -5,7 +5,9 @@ import { createInertiaApp } from '@inertiajs/react';
 import { resolvePageComponent } from 'laravel-vite-plugin/inertia-helpers';
 import { createRoot } from 'react-dom/client';
 
-const appName = import.meta.env.VITE_APP_NAME || 'Marvel Universe';
+// Base app name used in the browser tab / system overlay
+// Forced to 'marvel-universe' so it doesn't depend on .env values.
+const appName = 'marvel-universe';
 
 // Clean up old localStorage user data - all user data now stored in MySQL database
 if (typeof window !== 'undefined') {

@@ -8,23 +8,26 @@ import Contact from '../Components/Marvel/Contact.jsx';
 import Footer from '../Components/Marvel/Footer.jsx';
 import { AuthProvider } from '../context/AuthContext.jsx';
 import { FavoritesProvider } from '../context/FavoritesContext.jsx';
+import { ToastProvider } from '../context/ToastContext.jsx';
 
 export default function MarvelHome() {
     return (
-        <AuthProvider>
-            <FavoritesProvider>
-                <main className="relative min-h-screen w-screen overflow-x-hidden">
-                    <Navbar />
-                    <Hero />
-                    <About />
-                    <Features />
-                    <Story />
-                    <UpcomingFilms />
-                    <Contact />
-                    <Footer />
-                </main>
-            </FavoritesProvider>
-        </AuthProvider>
+        <ToastProvider>
+            <AuthProvider>
+                <FavoritesProvider>
+                    <main className="relative min-h-screen w-screen overflow-x-hidden">
+                        <Navbar />
+                        <Hero />
+                        <About />
+                        <Features />
+                        <Story />
+                        <UpcomingFilms />
+                        <Contact />
+                        <Footer />
+                    </main>
+                </FavoritesProvider>
+            </AuthProvider>
+        </ToastProvider>
     );
 }
 
