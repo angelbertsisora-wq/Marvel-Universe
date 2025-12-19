@@ -1,6 +1,7 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
 import { router, usePage } from '@inertiajs/react';
 import { useAuth } from './AuthContext';
+import { useToast } from './ToastContext';
 
 const FavoritesContext = createContext();
 
@@ -32,6 +33,7 @@ export const useFavorites = () => {
 export const FavoritesProvider = ({ children }) => {
   const { user } = useAuth();
   const { props } = usePage();
+  const { showError, showSuccess, showWarning } = useToast();
   const [favorites, setFavorites] = useState([]);
   const [isLoading, setIsLoading] = useState(false);
   
@@ -74,11 +76,15 @@ export const FavoritesProvider = ({ children }) => {
             }));
             setFavorites(transformedFavorites);
           } else {
+            const errorData = await response.json().catch(() => ({}));
+            const errorMessage = errorData.message || `Failed to load favorites (${response.status})`;
             console.error('Failed to load favorites:', response.status);
+            showError(errorMessage);
             setFavorites([]);
           }
         } catch (error) {
           console.error('Error loading favorites:', error);
+          showError('Network error: Unable to load favorites. Please check your connection.');
           setFavorites([]);
         } finally {
           setIsLoading(false);
@@ -170,12 +176,33 @@ export const FavoritesProvider = ({ children }) => {
           addedAt: data.favorite.addedAt,
         };
         setFavorites((prev) => [...prev, newFavorite]);
+        showSuccess(`${data.favorite.title} added to favorites!`);
       } else {
-        const errorData = await response.json();
-        throw new Error(errorData.message || 'Failed to add favorite');
+        let errorMessage = 'Failed to add favorite';
+        try {
+          const errorData = await response.json();
+          errorMessage = errorData.message || errorMessage;
+          
+          // Handle specific error cases
+          if (response.status === 419) {
+            errorMessage = 'Session expired. Please refresh the page and try again.';
+          } else if (response.status === 403) {
+            errorMessage = 'You do not have permission to perform this action.';
+          } else if (response.status === 422) {
+            errorMessage = errorData.message || 'Invalid data provided. Please check your input.';
+          }
+        } catch (e) {
+          errorMessage = `Server error (${response.status}). Please try again.`;
+        }
+        showError(errorMessage);
+        throw new Error(errorMessage);
       }
     } catch (error) {
       console.error('Error adding favorite:', error);
+      // Only show error if it wasn't already shown above
+      if (!error.message.includes('Failed to add favorite') && !error.message.includes('Session expired')) {
+        showError(error.message || 'Failed to add favorite. Please try again.');
+      }
       throw error;
     }
   };
@@ -218,13 +245,37 @@ export const FavoritesProvider = ({ children }) => {
 
           if (deleteResponse.ok) {
             setFavorites((prev) => prev.filter((f) => f.id !== filmId));
+            showSuccess('Favorite removed successfully');
           } else {
-            throw new Error('Failed to delete favorite');
+            let errorMessage = 'Failed to remove favorite';
+            try {
+              const errorData = await deleteResponse.json();
+              errorMessage = errorData.message || errorMessage;
+              
+              if (deleteResponse.status === 403) {
+                errorMessage = 'You do not have permission to remove this favorite.';
+              } else if (deleteResponse.status === 404) {
+                errorMessage = 'Favorite not found. It may have already been removed.';
+              }
+            } catch (e) {
+              errorMessage = `Server error (${deleteResponse.status}). Please try again.`;
+            }
+            showError(errorMessage);
+            throw new Error(errorMessage);
           }
         }
+      } else {
+        const errorData = await allFavoritesResponse.json().catch(() => ({}));
+        const errorMessage = errorData.message || 'Failed to fetch favorites';
+        showError(errorMessage);
+        throw new Error(errorMessage);
       }
     } catch (error) {
       console.error('Error removing favorite:', error);
+      // Only show error if it wasn't already shown above
+      if (!error.message.includes('Failed to remove favorite') && !error.message.includes('Failed to fetch')) {
+        showError(error.message || 'Failed to remove favorite. Please try again.');
+      }
       throw error;
     }
   };
@@ -292,6 +343,17 @@ export const FavoritesProvider = ({ children }) => {
         try {
           const errorData = await response.json();
           errorMessage = errorData.message || errorData.error || errorMessage;
+          
+          if (response.status === 403) {
+            errorMessage = 'You do not have permission to update this favorite.';
+          } else if (response.status === 404) {
+            errorMessage = 'Favorite not found. It may have been removed.';
+          } else if (response.status === 422) {
+            errorMessage = errorData.message || 'Invalid data. Please check your input.';
+          } else if (response.status === 419) {
+            errorMessage = 'Session expired. Please refresh the page and try again.';
+          }
+          
           console.error('Update theories error response:', {
             status: response.status,
             statusText: response.statusText,
@@ -304,8 +366,9 @@ export const FavoritesProvider = ({ children }) => {
             statusText: response.statusText,
             body: text,
           });
-          errorMessage = `Failed to update theories (${response.status}: ${response.statusText})`;
+          errorMessage = `Server error (${response.status}). Please try again.`;
         }
+        showError(errorMessage);
         throw new Error(errorMessage);
       }
 
@@ -313,8 +376,13 @@ export const FavoritesProvider = ({ children }) => {
       setFavorites((prev) =>
         prev.map((f) => (f.id === filmId ? { ...f, theories: data.favorite.theories } : f)),
       );
+      showSuccess('Theories updated successfully!');
     } catch (error) {
       console.error('Error updating theories:', error);
+      // Only show error if it wasn't already shown above
+      if (!error.message.includes('Failed to update theories') && !error.message.includes('Session expired')) {
+        showError(error.message || 'Failed to update theories. Please try again.');
+      }
       throw error;
     }
   };
@@ -334,18 +402,25 @@ export const FavoritesProvider = ({ children }) => {
       });
 
       if (!allFavoritesResponse.ok) {
-        throw new Error('Failed to fetch favorites');
+        const errorData = await allFavoritesResponse.json().catch(() => ({}));
+        const errorMessage = errorData.message || 'Failed to fetch favorites';
+        showError(errorMessage);
+        throw new Error(errorMessage);
       }
 
       const allData = await allFavoritesResponse.json();
       const favoriteToUpdate = allData.favorites.find((f) => f.film_id === filmId);
       
       if (!favoriteToUpdate) {
-        throw new Error('Favorite not found');
+        const errorMessage = 'Favorite not found';
+        showError(errorMessage);
+        throw new Error(errorMessage);
       }
 
       if (!favoriteToUpdate.id) {
-        throw new Error('Favorite database ID is missing');
+        const errorMessage = 'Favorite database ID is missing';
+        showError(errorMessage);
+        throw new Error(errorMessage);
       }
 
       const csrfToken = getCsrfTokenFromContext();
@@ -380,6 +455,17 @@ export const FavoritesProvider = ({ children }) => {
         try {
           const errorData = await response.json();
           errorMessage = errorData.message || errorData.error || errorMessage;
+          
+          if (response.status === 403) {
+            errorMessage = 'You do not have permission to update this favorite.';
+          } else if (response.status === 404) {
+            errorMessage = 'Favorite not found. It may have been removed.';
+          } else if (response.status === 422) {
+            errorMessage = errorData.message || 'Invalid data. Please check your input.';
+          } else if (response.status === 419) {
+            errorMessage = 'Session expired. Please refresh the page and try again.';
+          }
+          
           console.error('Update notes error response:', {
             status: response.status,
             statusText: response.statusText,
@@ -392,8 +478,9 @@ export const FavoritesProvider = ({ children }) => {
             statusText: response.statusText,
             body: text,
           });
-          errorMessage = `Failed to update notes (${response.status}: ${response.statusText})`;
+          errorMessage = `Server error (${response.status}). Please try again.`;
         }
+        showError(errorMessage);
         throw new Error(errorMessage);
       }
 
@@ -401,8 +488,13 @@ export const FavoritesProvider = ({ children }) => {
       setFavorites((prev) =>
         prev.map((f) => (f.id === filmId ? { ...f, notes: data.favorite.notes } : f)),
       );
+      showSuccess('Notes updated successfully!');
     } catch (error) {
       console.error('Error updating notes:', error);
+      // Only show error if it wasn't already shown above
+      if (!error.message.includes('Failed to update notes') && !error.message.includes('Session expired')) {
+        showError(error.message || 'Failed to update notes. Please try again.');
+      }
       throw error;
     }
   };
@@ -458,9 +550,11 @@ export const FavoritesProvider = ({ children }) => {
             addedAt: data.favorite.addedAt,
           };
           setFavorites((prev) => [...prev, newFavorite]);
+          showSuccess(`${data.favorite.title} added to favorites!`);
         } else {
           // Removed
           setFavorites((prev) => prev.filter((f) => f.id !== film.id));
+          showSuccess('Removed from favorites');
         }
       } else {
         // Get detailed error message from response
@@ -469,13 +563,17 @@ export const FavoritesProvider = ({ children }) => {
           const errorData = await response.json();
           errorMessage = errorData.message || errorData.error || errorMessage;
           
-          // Handle CSRF token mismatch
+          // Handle specific error cases
           if (response.status === 419 || errorData.message?.includes('CSRF')) {
             errorMessage = 'Session expired. Please refresh the page and try again.';
+          } else if (response.status === 403) {
+            errorMessage = 'You do not have permission to perform this action.';
+          } else if (response.status === 422) {
+            errorMessage = errorData.message || 'Invalid data provided. Please check your input.';
           }
         } catch (e) {
           // If response is not JSON, use status text
-          errorMessage = response.statusText || errorMessage;
+          errorMessage = `Server error (${response.status}). Please try again.`;
         }
         
         console.error('Toggle favorite error:', {
@@ -484,10 +582,15 @@ export const FavoritesProvider = ({ children }) => {
           message: errorMessage,
         });
         
+        showError(errorMessage);
         throw new Error(errorMessage);
       }
     } catch (error) {
       console.error('Error toggling favorite:', error);
+      // Only show error if it wasn't already shown above
+      if (!error.message.includes('Failed to toggle favorite') && !error.message.includes('Session expired')) {
+        showError(error.message || 'Failed to update favorite. Please try again.');
+      }
       throw error;
     }
   };
