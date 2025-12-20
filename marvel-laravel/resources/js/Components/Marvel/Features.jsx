@@ -185,16 +185,16 @@ const Features = () => {
             />
         </BentoTilt>
 
-            <div className='grid h-[135vh] grid-cols-2 grid-rows-3 gap-7'>
+            <div className='grid auto-rows-fr grid-cols-1 gap-4 md:h-[135vh] md:grid-cols-2 md:grid-rows-3 md:gap-7'>
                     <BentoTilt className='bento-tilt_1 row-span-1 md:col-span-1 md:row-span-2'>
                                 <BentoCard
                                     src="https://res.cloudinary.com/djef7fggp/video/upload/v1765185113/villains_m9gkp1.3gp"
                                     title={<><b>Villains</b></>}
-                                    description={"Explore the minds of Marvel’s greatest threats, including Thanos, Loki, Kang, and the Green Goblin."}
+                                    description={"Explore the minds of Marvel's greatest threats, including Thanos, Loki, Kang, and the Green Goblin."}
                                  />
                     </BentoTilt>
 
-                    <BentoTilt className='bento-tilt_1 row-span-1 ms-32 md:col-span-1 md:ms-0'>
+                    <BentoTilt className='bento-tilt_1 row-span-1 md:col-span-1'>
                             <BentoCard
                             src="https://res.cloudinary.com/dqbhvzioe/video/upload/v1744102674/feature-3_k3tnrx.mp4"
                             title={<><b>Teams</b></>}
@@ -202,7 +202,7 @@ const Features = () => {
                             />
                     </BentoTilt>
 
-                    <BentoTilt className='bento-tilt_1 me-14 md:col-span-1 md:me-0'>
+                    <BentoTilt className='bento-tilt_1 row-span-1 md:col-span-1'>
                             <BentoCard
                             src="https://res.cloudinary.com/djef7fggp/video/upload/v1765185755/allies_zmaezo.3gp"
                             title={<><b>Allies</b></>}
