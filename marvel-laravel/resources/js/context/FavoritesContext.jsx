@@ -384,7 +384,12 @@ export const FavoritesProvider = ({ children }) => {
       setFavorites((prev) =>
         prev.map((f) => (f.id === filmId ? { ...f, theories: data.favorite.theories } : f)),
       );
-      showSuccess('Theories updated successfully!');
+      // Show appropriate message based on whether it's a delete (empty) or update
+      if (theories === '' || !theories) {
+        showSuccess('Theory deleted successfully');
+      } else {
+        showSuccess('Theories updated successfully!');
+      }
     } catch (error) {
       console.error('Error updating theories:', error);
       // Only show error if it wasn't already shown above
@@ -496,7 +501,12 @@ export const FavoritesProvider = ({ children }) => {
       setFavorites((prev) =>
         prev.map((f) => (f.id === filmId ? { ...f, notes: data.favorite.notes } : f)),
       );
-      showSuccess('Notes updated successfully!');
+      // Show appropriate message based on whether it's a delete (empty) or update
+      if (notes === '' || !notes) {
+        showSuccess('Note deleted successfully');
+      } else {
+        showSuccess('Notes updated successfully!');
+      }
     } catch (error) {
       console.error('Error updating notes:', error);
       // Only show error if it wasn't already shown above

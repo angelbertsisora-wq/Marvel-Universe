@@ -168,10 +168,10 @@ const FavoritesModal = ({ isOpen, onClose }) => {
     try {
       if (type === 'theories') {
         await updateTheories(filmId, '');
-        showSuccess('Theory deleted successfully');
+        // Success message is shown in FavoritesContext
       } else if (type === 'notes') {
         await updateNotes(filmId, '');
-        showSuccess('Note deleted successfully');
+        // Success message is shown in FavoritesContext
       }
     } catch (error) {
       console.error('Error deleting:', error);
